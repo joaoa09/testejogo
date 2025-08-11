@@ -66,7 +66,7 @@ porta_saida = None
 # Variáveis para o buff de velocidade
 buff_velocidade_ativo = False
 tempo_buff_inicio = 0
-duracao_buff_velocidade = 17000
+duracao_buff_velocidade = 35000
 
 # Geração inteligente de itens
 largura_mapa = mapa_img.get_width()
@@ -138,27 +138,32 @@ while a_executar:
             if mapa_mask.overlap(personagem_mask, (personagem_rect.x, personagem_rect.y)):
                 personagem_rect.y -= velocidade
 
-    if not jogo_vencido:
-        itens_para_remover = []
-        for item in lista_de_itens:
-            if personagem_rect.colliderect(item.rect):
+    # ### MODIFICADO ### --- Lógica de Coleta de Itens Reestruturada ---
+    itens_para_remover = []
+    for item in lista_de_itens:
+        if personagem_rect.colliderect(item.rect):
+            # A coleta de CHAVE só funciona se o jogador ainda NÃO coletou todas
+            if item.tipo == 'chave' and not jogo_vencido:
                 itens_para_remover.append(item)
-                if item.tipo == 'chave':
-                    chaves_coletadas += 1
-                    if chaves_coletadas == numero_total_chaves:
-                        jogo_vencido = True
-                        exibir_mensagem_vitoria = True
-                        tempo_mensagem_inicio = pygame.time.get_ticks()
-                        print("Todas as chaves foram coletadas!")
-                
-                elif item.tipo == 'velocidade':
-                    velocidade = velocidade_base * 1.5
-                    buff_velocidade_ativo = True
-                    tempo_buff_inicio = pygame.time.get_ticks()
-                    print(f"Buff de velocidade ativado! Nova velocidade: {velocidade}")
-        
-        for item in itens_para_remover:
-            lista_de_itens.remove(item)
+                chaves_coletadas += 1
+                if chaves_coletadas == numero_total_chaves:
+                    jogo_vencido = True
+                    exibir_mensagem_vitoria = True
+                    tempo_mensagem_inicio = pygame.time.get_ticks()
+                    print("Todas as chaves foram coletadas!")
+            
+            # A coleta de VELOCIDADE funciona a qualquer momento (antes de finalizar o jogo)
+            elif item.tipo == 'velocidade' and not jogo_finalizado:
+                itens_para_remover.append(item)
+                velocidade = velocidade_base * 1.5
+                buff_velocidade_ativo = True
+                tempo_buff_inicio = pygame.time.get_ticks()
+                print(f"Buff de velocidade ativado! Nova velocidade: {velocidade}")
+    
+    # Remove da lista os itens que foram coletados neste frame
+    for item in itens_para_remover:
+        lista_de_itens.remove(item)
+
 
     if jogo_vencido and not jogo_finalizado:
         if personagem_rect.colliderect(porta_saida.rect):
@@ -190,22 +195,17 @@ while a_executar:
     pos_texto = (20, 20) 
     tela.blit(superficie_texto, pos_texto)
 
-    # ### MODIFICADO ### - HUD para o buff de velocidade com ÍCONE
     if buff_velocidade_ativo:
-        # 1. Define a posição do ícone e o desenha
         pos_icone = (20, 60)
         tela.blit(coletavel1_img, pos_icone)
 
-        # 2. Calcula e renderiza o texto
         tempo_restante = (duracao_buff_velocidade - (pygame.time.get_ticks() - tempo_buff_inicio)) / 1000
         tempo_restante = max(0, tempo_restante)
         texto_buff = f"Velocidade extra: {tempo_restante:.1f}s"
         superficie_buff = fonte_hud.render(texto_buff, True, (173, 216, 230), (0,0,0))
         
-        # 3. Define a posição do texto para ficar ao lado do ícone
         pos_texto_buff = (pos_icone[0] + coletavel1_img.get_width() + 10, pos_icone[1] + 4)
         tela.blit(superficie_buff, pos_texto_buff)
-
 
     if exibir_mensagem_vitoria:
         if pygame.time.get_ticks() - tempo_mensagem_inicio > duracao_mensagem:
