@@ -1,61 +1,58 @@
 import pygame
 import random
 
-# 1. Inicialização do Pygame
+#inicialização do pygame
 pygame.init()
 
-# 2. Configurações da Janela
-largura_tela = 1680
-altura_tela = 960
+#configurações da janela
+info = pygame.display.Info()
+largura_tela = info.current_w
+altura_tela = info.current_h
 tela = pygame.display.set_mode((largura_tela, altura_tela))
 pygame.display.set_caption("Encontre a Saída!")
 
-# 3. Configurações da Interface (HUD)
-COR_TEXTO = (255, 255, 255)
+#configurações do HUD
+cor_texto = (255, 255, 255)
 pygame.font.init()
 fonte_hud = pygame.font.SysFont('Consolas', 30, bold=True)
 
-# 4. Classe para representar os Itens
+#classe para os itens
 class Item(pygame.sprite.Sprite):
     def __init__(self, x, y, tipo, imagem):
         super().__init__()
         self.tipo = tipo
-        self.image = imagem
-        self.rect = self.image.get_rect(center=(x, y))
+        self.imagem = imagem
+        self.rect = self.imagem.get_rect(center=(x, y))
 
-# 5. Carregamento das Imagens
-try:
-    mapa_img = pygame.image.load("mapa.jpg").convert()
-    mapa_colisao_img = pygame.image.load("mapa_colisao.png").convert()
-    mapa_colisao_img.set_colorkey((255, 255, 255))
+#carregamento das imagens
 
-    personagem_img_original = pygame.image.load("perso.webp").convert_alpha()
-    personagem_img = pygame.transform.scale(personagem_img_original, (32, 32))
+mapa_img = pygame.image.load("mapa.jpg").convert()
+mapa_colisao_img = pygame.image.load("mapa_colisao.png").convert()
+mapa_colisao_img.set_colorkey((255, 255, 255))
 
-    chave_img_original = pygame.image.load("chave.png").convert_alpha()
-    chave_img = pygame.transform.scale(chave_img_original, (32, 32))
+personagem_img_original = pygame.image.load("perso.webp").convert_alpha()
+personagem_img = pygame.transform.scale(personagem_img_original, (32, 32))
 
-    porta_img_original = pygame.image.load("porta.png").convert_alpha()
-    porta_img = pygame.transform.scale(porta_img_original, (64, 64))
+chave_img_original = pygame.image.load("chave.png").convert_alpha()
+chave_img = pygame.transform.scale(chave_img_original, (32, 32))
 
-    coletavel1_img_original = pygame.image.load("coletavel1.png").convert_alpha()
-    coletavel1_img = pygame.transform.scale(coletavel1_img_original, (32, 32))
+porta_img_original = pygame.image.load("porta.png").convert_alpha()
+porta_img = pygame.transform.scale(porta_img_original, (64, 64))
 
-except pygame.error as e:
-    print(f"Erro ao carregar imagens: {e}")
-    pygame.quit()
-    exit()
+coletavel1_img_original = pygame.image.load("coletavel1.png").convert_alpha()
+coletavel1_img = pygame.transform.scale(coletavel1_img_original, (32, 32))
 
-# 6. Criação das máscaras
-mapa_mask = pygame.mask.from_surface(mapa_colisao_img)
-personagem_mask = pygame.mask.from_surface(personagem_img)
+ 
+#criação das máscaras
+paredes = pygame.mask.from_surface(mapa_colisao_img)
+colisao_personagem = pygame.mask.from_surface(personagem_img)
 
-# 7. Variáveis do Personagem e do Mundo
+#variáveis do personagem e do mundo
 personagem_rect = personagem_img.get_rect(center=(70, 70))
 velocidade_base = 4
 velocidade = velocidade_base
 
-# 8. Variáveis de Jogo e Itens
+#variáveis de jogo e itens
 chaves_coletadas = 0
 numero_total_chaves = 3
 jogo_vencido = False
@@ -63,19 +60,19 @@ jogo_finalizado = False
 lista_de_itens = []
 porta_saida = None
 
-# Variáveis para o buff de velocidade
+#variáveis para o buff de velocidade
 buff_velocidade_ativo = False
 tempo_buff_inicio = 0
 duracao_buff_velocidade = 35000
 
-# Geração inteligente de itens
+#geração inteligente de itens
 largura_mapa = mapa_img.get_width()
 altura_mapa = mapa_img.get_height()
 
 while len(lista_de_itens) < numero_total_chaves:
     x = random.randint(50, largura_mapa - 50)
     y = random.randint(50, altura_mapa - 50)
-    if mapa_mask.get_at((x, y)) == 0:
+    if paredes.get_at((x, y)) == 0:
         nova_chave = Item(x, y, 'chave', chave_img)
         lista_de_itens.append(nova_chave)
         print(f"Chave {len(lista_de_itens)} gerada em: ({x}, {y})")
@@ -85,7 +82,7 @@ for _ in range(1):
     while not item_spawnado:
         x = random.randint(50, largura_mapa - 50)
         y = random.randint(50, altura_mapa - 50)
-        if mapa_mask.get_at((x, y)) == 0:
+        if paredes.get_at((x, y)) == 0:
             novo_coletavel = Item(x, y, 'velocidade', coletavel1_img)
             lista_de_itens.append(novo_coletavel)
             item_spawnado = True
@@ -94,9 +91,8 @@ for _ in range(1):
 while porta_saida is None:
     x = random.randint(50, largura_mapa - 50)
     y = random.randint(50, altura_mapa - 50)
-    if mapa_mask.get_at((x, y)) == 0:
+    if paredes.get_at((x, y)) == 0:
         porta_saida = Item(x, y, 'porta', porta_img)
-        print(f"Porta de saída gerada em: ({x}, {y})")
 
 # Variáveis para controlar a mensagem de vitória
 exibir_mensagem_vitoria = False
@@ -123,19 +119,19 @@ while a_executar:
         
         if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
             personagem_rect.x -= velocidade
-            if mapa_mask.overlap(personagem_mask, (personagem_rect.x, personagem_rect.y)):
+            if paredes.overlap(colisao_personagem, (personagem_rect.x, personagem_rect.y)):
                 personagem_rect.x += velocidade
         if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
             personagem_rect.x += velocidade
-            if mapa_mask.overlap(personagem_mask, (personagem_rect.x, personagem_rect.y)):
+            if paredes.overlap(colisao_personagem, (personagem_rect.x, personagem_rect.y)):
                 personagem_rect.x -= velocidade
         if teclas[pygame.K_UP] or teclas[pygame.K_w]:
             personagem_rect.y -= velocidade
-            if mapa_mask.overlap(personagem_mask, (personagem_rect.x, personagem_rect.y)):
+            if paredes.overlap(colisao_personagem, (personagem_rect.x, personagem_rect.y)):
                 personagem_rect.y += velocidade
         if teclas[pygame.K_DOWN] or teclas[pygame.K_s]:
             personagem_rect.y += velocidade
-            if mapa_mask.overlap(personagem_mask, (personagem_rect.x, personagem_rect.y)):
+            if paredes.overlap(colisao_personagem, (personagem_rect.x, personagem_rect.y)):
                 personagem_rect.y -= velocidade
 
     # ### MODIFICADO ### --- Lógica de Coleta de Itens Reestruturada ---
@@ -182,16 +178,16 @@ while a_executar:
     tela.blit(mapa_img, (-camera_x, -camera_y))
     
     for item in lista_de_itens:
-        tela.blit(item.image, item.rect.move(-camera_x, -camera_y))
+        tela.blit(item.imagem, item.rect.move(-camera_x, -camera_y))
 
     if jogo_vencido and porta_saida:
-        tela.blit(porta_saida.image, porta_saida.rect.move(-camera_x, -camera_y))
+        tela.blit(porta_saida.imagem, porta_saida.rect.move(-camera_x, -camera_y))
 
     tela.blit(personagem_img, personagem_rect.move(-camera_x, -camera_y))
 
     # --- Desenha a Interface (HUD) ---
     texto_hud = f"Chaves: {chaves_coletadas} / {numero_total_chaves}"
-    superficie_texto = fonte_hud.render(texto_hud, True, COR_TEXTO, (0, 0, 0))
+    superficie_texto = fonte_hud.render(texto_hud, True, cor_texto, (0, 0, 0))
     pos_texto = (20, 20) 
     tela.blit(superficie_texto, pos_texto)
 
