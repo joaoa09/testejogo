@@ -65,7 +65,7 @@ buff_velocidade_ativo = False
 tempo_buff_inicio = 0
 duracao_buff_velocidade = 35000
 
-#geração inteligente de itens
+#geração de itens
 largura_mapa = mapa_img.get_width()
 altura_mapa = mapa_img.get_height()
 
@@ -75,18 +75,15 @@ while len(lista_de_itens) < numero_total_chaves:
     if paredes.get_at((x, y)) == 0:
         nova_chave = Item(x, y, 'chave', chave_img)
         lista_de_itens.append(nova_chave)
-        print(f"Chave {len(lista_de_itens)} gerada em: ({x}, {y})")
 
-for _ in range(1):
-    item_spawnado = False
-    while not item_spawnado:
-        x = random.randint(50, largura_mapa - 50)
-        y = random.randint(50, altura_mapa - 50)
-        if paredes.get_at((x, y)) == 0:
-            novo_coletavel = Item(x, y, 'velocidade', coletavel1_img)
-            lista_de_itens.append(novo_coletavel)
-            item_spawnado = True
-            print(f"Item de velocidade gerado em: ({x}, {y})")
+item_spawnado = False
+while not item_spawnado:
+    x = random.randint(50, largura_mapa - 50)
+    y = random.randint(50, altura_mapa - 50)
+    if paredes.get_at((x, y)) == 0:
+        novo_coletavel = Item(x, y, 'velocidade', coletavel1_img)
+        lista_de_itens.append(novo_coletavel)
+        item_spawnado = True
 
 while porta_saida is None:
     x = random.randint(50, largura_mapa - 50)
@@ -104,36 +101,39 @@ a_executar = True
 relogio = pygame.time.Clock()
 
 while a_executar:
+    teclas = pygame.key.get_pressed()
+
     for evento in pygame.event.get():
-        if evento.type == pygame.QUIT:
+        if evento.type == pygame.QUIT or teclas[pygame.K_ESCAPE]:
             a_executar = False
 
     if buff_velocidade_ativo:
         if pygame.time.get_ticks() - tempo_buff_inicio > duracao_buff_velocidade:
             velocidade = velocidade_base
             buff_velocidade_ativo = False
-            print("Buff de velocidade terminou.")
 
     if not jogo_finalizado:
-        teclas = pygame.key.get_pressed()
         
         if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
             personagem_rect.x -= velocidade
             if paredes.overlap(colisao_personagem, (personagem_rect.x, personagem_rect.y)):
                 personagem_rect.x += velocidade
+
         if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
             personagem_rect.x += velocidade
             if paredes.overlap(colisao_personagem, (personagem_rect.x, personagem_rect.y)):
                 personagem_rect.x -= velocidade
+        
         if teclas[pygame.K_UP] or teclas[pygame.K_w]:
             personagem_rect.y -= velocidade
             if paredes.overlap(colisao_personagem, (personagem_rect.x, personagem_rect.y)):
                 personagem_rect.y += velocidade
+        
         if teclas[pygame.K_DOWN] or teclas[pygame.K_s]:
             personagem_rect.y += velocidade
             if paredes.overlap(colisao_personagem, (personagem_rect.x, personagem_rect.y)):
                 personagem_rect.y -= velocidade
-
+        
     # ### MODIFICADO ### --- Lógica de Coleta de Itens Reestruturada ---
     itens_para_remover = []
     for item in lista_de_itens:
@@ -146,7 +146,6 @@ while a_executar:
                     jogo_vencido = True
                     exibir_mensagem_vitoria = True
                     tempo_mensagem_inicio = pygame.time.get_ticks()
-                    print("Todas as chaves foram coletadas!")
             
             # A coleta de VELOCIDADE funciona a qualquer momento (antes de finalizar o jogo)
             elif item.tipo == 'velocidade' and not jogo_finalizado:
@@ -154,7 +153,6 @@ while a_executar:
                 velocidade = velocidade_base * 1.5
                 buff_velocidade_ativo = True
                 tempo_buff_inicio = pygame.time.get_ticks()
-                print(f"Buff de velocidade ativado! Nova velocidade: {velocidade}")
     
     # Remove da lista os itens que foram coletados neste frame
     for item in itens_para_remover:
@@ -164,14 +162,16 @@ while a_executar:
     if jogo_vencido and not jogo_finalizado:
         if personagem_rect.colliderect(porta_saida.rect):
             jogo_finalizado = True
-            print("VITÓRIA! O jogador encontrou a saída!")
 
     # --- LÓGICA DA CÂMARA ---
     camera_x = personagem_rect.centerx - largura_tela // 2
     camera_y = personagem_rect.centery - altura_tela // 2
     if camera_x < 0: camera_x = 0
+    
     if camera_y < 0: camera_y = 0
+    
     if camera_x > largura_mapa - largura_tela: camera_x = largura_mapa - largura_tela
+    
     if camera_y > altura_mapa - altura_tela: camera_y = altura_mapa - altura_tela
         
     # --- ATUALIZAÇÃO DA TELA ---
@@ -186,7 +186,7 @@ while a_executar:
     tela.blit(personagem_img, personagem_rect.move(-camera_x, -camera_y))
 
     # --- Desenha a Interface (HUD) ---
-    texto_hud = f"Chaves: {chaves_coletadas} / {numero_total_chaves}"
+    texto_hud = f"Chaves: {chaves_coletadas}"
     superficie_texto = fonte_hud.render(texto_hud, True, cor_texto, (0, 0, 0))
     pos_texto = (20, 20) 
     tela.blit(superficie_texto, pos_texto)
@@ -206,6 +206,7 @@ while a_executar:
     if exibir_mensagem_vitoria:
         if pygame.time.get_ticks() - tempo_mensagem_inicio > duracao_mensagem:
             exibir_mensagem_vitoria = False
+
         else:
             texto_vitoria = "Você tem as chaves! Encontre a saída!"
             fonte_vitoria = pygame.font.SysFont('Consolas', 40, bold=True)
