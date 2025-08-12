@@ -10,12 +10,12 @@ LIMIAR_VERDE = 30
 # --- NOVA CONFIGURAÇÃO DE FECHAMENTO ---
 # Para tapar pequenos "buracos" brancos nas paredes e solidificá-las.
 # Um valor de 1 ou 2 é recomendado. Define como 0 para desativar.
-NIVEL_FECHAMENTO = 2
+NIVEL_FECHAMENTO = 5
 
 # --- CONFIGURAÇÃO DE EROSÃO ---
 # Para afinar as paredes e alargar os corredores (aplicado DEPOIS do fechamento).
 # Define como 0 para não afinar as paredes. 1 ou 2 é um bom começo.
-NIVEL_EROSAO = 1
+NIVEL_EROSAO = 7
 # --------------------
 
 pygame.init()
