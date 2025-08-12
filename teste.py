@@ -1,7 +1,6 @@
 import pygame
 import random
 from item import Item
-from camera import Camera
 
 #inicialização do pygame
 pygame.init()
