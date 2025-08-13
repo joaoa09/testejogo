@@ -65,7 +65,7 @@ ultima_marcacao_temporal = 0
 vitoria = False
 derrota = False
 
-total_chaves = 1
+total_chaves = 3
 total_velocidade = 5
 total_tempo = 4
 chaves_coletadas = 0
@@ -134,10 +134,18 @@ def atualizar_status_partida():
     
     if chaves_encontradas and porta_saida and personagem_rect.colliderect(porta_saida.rect):
         vitoria = True
+        mixer.music.stop()
+        mixer.music.load("Musica/ganhou.ogg")
+        pygame.mixer.music.set_volume(0.2)
+        mixer.music.play()
     
     if tempo_restante <= 0:
         tempo_restante = 0
         derrota = True
+        mixer.music.stop()
+        mixer.music.load("Musica/perdeu.ogg")
+        pygame.mixer.music.set_volume(0.2)
+        mixer.music.play()
     
     if pygame.time.get_ticks() - ultima_marcacao_temporal >= 1000:
         tempo_restante -= 1
@@ -198,19 +206,17 @@ def desenhar_cena_jogo():
 
     if vitoria:
         desenhar_tela_final("Parabéns, você graduou :)", (255, 215, 0))
-        mixer.music.load("Musica/musicatopzera.ogg")
-        mixer.music.play(-1)
 
     elif derrota:
-        desenhar_tela_final("Eita, demorou demais, você foi jubilado! :(", (170, 0, 0))
-        mixer.music.load("Musica/musicatopzera.ogg")
-        mixer.music.play(-1)
+        desenhar_tela_final("Eita, demorasse demais, você foi jubilado! :(", (170, 0, 0))
+        
 
 estado_jogo = 'menu'
 running = True
 
 mixer.music.load("Musica/musicatopzera.ogg")
 mixer.music.play(-1)
+
 
 while running:
     for evento in pygame.event.get():
@@ -256,7 +262,7 @@ while running:
                 elif dificuldade_selecionada == 'medio': 
                     tempo_restante = 360
                 elif dificuldade_selecionada == 'dificil':
-                    tempo_restante = 240
+                    tempo_restante = 1
                 
                 ultima_marcacao_temporal = pygame.time.get_ticks()
                 mensagem_chaves= False 
