@@ -1,15 +1,7 @@
 import pygame
 import random
 import sys
-
-class Item(pygame.sprite.Sprite):
-    def __init__(self, x, y, tipo, imagem):
-        super().__init__()
-        
-        self.tipo = tipo
-        self.imagem = imagem
-        self.rect = self.imagem.get_rect(center=(x, y))
-
+from item import Item
 
 pygame.init()
 pygame.font.init()
@@ -28,11 +20,10 @@ relogio = pygame.time.Clock()
 
 COR_BRANCA = (255, 255, 255)
 COR_AMARELA = (255, 255, 0)
-COR_VERMELHO= (255 ,0, 0)
-COR_VERDE= (0, 150, 0)
-COR_LARANJA= (255, 100, 0)
+COR_VERMELHO = (255 ,0, 0)
+COR_VERDE = (0, 150, 0)
+COR_LARANJA = (255, 100, 0)
 COR_TITULO = (220, 230, 255)
-COR_CONTORNO = (10, 10, 10)
 
 fonte_titulo = pygame.font.SysFont('Consolas', 100, bold=True)
 fonte_menu = pygame.font.SysFont('dejavuserif', 65, bold=True)
@@ -54,25 +45,26 @@ tempo_img = pygame.transform.scale(pygame.image.load("Imagens/relogio.png").conv
 
 escala_blur = 0.05
 
-mapa_pequeno = pygame.transform.smoothscale(
-    mapa_img_original,
-    (int(largura_tela * escala_blur), int(altura_tela * escala_blur))
-)
+mapa_pequeno = pygame.transform.smoothscale(mapa_img_original, (int(largura_tela * escala_blur), int(altura_tela * escala_blur)))
+
 mapa_fundo_blur = pygame.transform.scale(mapa_pequeno, (largura_tela, altura_tela))
 
 paredes = pygame.mask.from_surface(mapa_colisao_img)
 colisao_personagem = pygame.mask.from_surface(personagem_img)
 
-#+ Variáveis
+#Variáveis
+largura_mapa, altura_mapa = mapa_img_original.get_size()
 
 personagem_rect = pygame.Rect(0, 0, 0, 0)
 velocidade_personagem = 0
+
 tempo_restante = 0
-ticktempoai = 0
+ultima_marcacao_temporal = 0
+
 vitoria = False
 derrota = False
 
-total_chaves = 3
+total_chaves = 1
 total_velocidade = 5
 total_tempo = 4
 chaves_coletadas = 0
@@ -88,12 +80,16 @@ duracao_mensagem = 5000
 
 dificuldade_selecionada = 'medio'
 
+def pos_valida(pos_ok):
+        if not pos_ok:
+            return (largura_mapa // 2, altura_mapa // 2)
+        pos = random.choice(pos_ok)
+        pos_ok.remove(pos)
+        return pos
 
 def iniciar_novo_jogo(dificuldade):
     #Reseta variáveis
-    global personagem_rect, velocidade_personagem, tempo_restante, ticktempoai
-    global vitoria, derrota, chaves_coletadas, botas_coletadas, relogios_coletados
-    global chaves_encontradas, lista_de_itens, porta_saida, mensagem_chaves, tempo_msg
+    global personagem_rect, velocidade_personagem, tempo_restante, ultima_marcacao_temporal, vitoria, derrota, chaves_coletadas, botas_coletadas, relogios_coletados, chaves_encontradas, lista_de_itens, porta_saida, mensagem_chaves, tempo_msg
 
     botas_coletadas=0
     relogios_coletados=0
@@ -114,11 +110,10 @@ def iniciar_novo_jogo(dificuldade):
     elif dificuldade == 'dificil':
         tempo_restante = 240
     
-    ticktempoai = pygame.time.get_ticks()
+    ultima_marcacao_temporal = pygame.time.get_ticks()
     mensagem_chaves= False 
     tempo_msg = 0
     
-    largura_mapa, altura_mapa = mapa_img_original.get_size()
     pos_ok = []
     passo, w_pers, h_pers = 24, personagem_img.get_width(), personagem_img.get_height()
 
@@ -127,15 +122,8 @@ def iniciar_novo_jogo(dificuldade):
             pos_x_canto, pos_y_canto = x - w_pers // 2, y - h_pers // 2
             if not paredes.overlap(colisao_personagem, (pos_x_canto, pos_y_canto)):
                 pos_ok.append((x, y))
-    
-    def pos_valida():
-        if not pos_ok:
-            return (largura_mapa // 2, altura_mapa // 2)
-        pos = random.choice(pos_ok)
-        pos_ok.remove(pos)
-        return pos
 
-    personagem_rect = personagem_img.get_rect(center=pos_valida())
+    personagem_rect = personagem_img.get_rect(center=pos_valida(pos_ok))
     
     itens_a_gerar = []
     for _ in range(total_chaves):
@@ -148,10 +136,10 @@ def iniciar_novo_jogo(dificuldade):
     random.shuffle(itens_a_gerar)
 
     for tipo, img in itens_a_gerar:
-        x, y = pos_valida()
+        x, y = pos_valida(pos_ok)
         lista_de_itens.append(Item(x, y, tipo, img))
 
-    x_porta, y_porta = pos_valida()
+    x_porta, y_porta = pos_valida(pos_ok)
     porta_saida = Item(x_porta, y_porta, 'porta', porta_img)
 
 
@@ -186,13 +174,13 @@ def desenhar_menu():
     fazendoo_txt("Pós", fonte_dificuldade, cor_dificil, rect_dificil.center)
 
     pos_y_botoes = altura_tela * 0.75
-    hitbox_comecar = fonte_menu.render("Entrar No CIn", True, COR_BRANCA).get_rect(center=(largura_tela / 2, pos_y_botoes))
+    hitbox_comecar = fonte_menu.render("Pular a catraca", True, COR_BRANCA).get_rect(center=(largura_tela / 2, pos_y_botoes))
     cor_comecar = COR_AMARELA if hitbox_comecar.collidepoint(mouse_pos) else COR_BRANCA
-    fazendoo_txt("Entrar No Cin", fonte_menu, cor_comecar, hitbox_comecar.center)
+    fazendoo_txt("Pular a catraca", fonte_menu, cor_comecar, hitbox_comecar.center)
     
-    rect_sair = fonte_menu.render("Trancar Período", True, COR_BRANCA).get_rect(center=(largura_tela / 2, pos_y_botoes + 90))
+    rect_sair = fonte_menu.render("Trancar curso", True, COR_BRANCA).get_rect(center=(largura_tela / 2, pos_y_botoes + 90))
     cor_sair = COR_AMARELA if rect_sair.collidepoint(mouse_pos) else COR_BRANCA
-    fazendoo_txt("Trancar Período", fonte_menu, cor_sair, rect_sair.center)
+    fazendoo_txt("Trancar curso", fonte_menu, cor_sair, rect_sair.center)
     
     return hitbox_comecar, rect_sair, rect_facil, rect_medio, rect_dificil
 
@@ -220,8 +208,7 @@ def processar_movimento_jogador():
 
 
 def processar_coleta_itens():
-    global chaves_coletadas, chaves_encontradas, mensagem_chaves, tempo_msg
-    global botas_coletadas, velocidade_personagem, relogios_coletados, tempo_restante
+    global chaves_coletadas, chaves_encontradas, mensagem_chaves, tempo_msg, botas_coletadas, velocidade_personagem, relogios_coletados, tempo_restante
     
     itens_para_remover = []
     for item in lista_de_itens:
@@ -246,7 +233,7 @@ def processar_coleta_itens():
 
 
 def atualizar_status_partida():
-    global vitoria, derrota, tempo_restante, ticktempoai
+    global vitoria, derrota, tempo_restante, ultima_marcacao_temporal
     
     if chaves_encontradas and porta_saida and personagem_rect.colliderect(porta_saida.rect):
         vitoria = True
@@ -255,10 +242,19 @@ def atualizar_status_partida():
         tempo_restante = 0
         derrota = True
     
-    if pygame.time.get_ticks() - ticktempoai >= 1000:
+    if pygame.time.get_ticks() - ultima_marcacao_temporal >= 1000:
         tempo_restante -= 1
-        ticktempoai = pygame.time.get_ticks()
+        ultima_marcacao_temporal = pygame.time.get_ticks()
 
+def desenhar_tela_final(texto, cor):
+    fundo_final = pygame.Surface((largura_tela, altura_tela), pygame.SRCALPHA)
+    fundo_final.fill((0, 0, 0, 180))
+    tela.blit(fundo_final, (0, 0))
+    
+    fonte_final = pygame.font.SysFont('Consolas', 50, bold=True)
+    superficie_final = fonte_final.render(texto, True, cor)
+    pos_final = superficie_final.get_rect(center=(largura_tela / 2, altura_tela / 2))
+    tela.blit(superficie_final, pos_final)
 
 def desenhar_cena_jogo():
 
@@ -277,50 +273,37 @@ def desenhar_cena_jogo():
 
     tela.blit(personagem_img, personagem_rect.move(-camera_x, -camera_y))
 
-    hud_bg_color = (0, 0, 0, 150)
-    textos_hud = [
-        f"Chaves: {chaves_coletadas}/{total_chaves}",
-        f"Botas: {botas_coletadas}/{total_velocidade}",
-        f"Relógios: {relogios_coletados}/{total_tempo}"
-    ]
+    hud_fundo_cor = (0, 0, 0, 150)
+    textos_hud = [f"Chaves: {chaves_coletadas}/{total_chaves}", f"Botas: {botas_coletadas}/{total_velocidade}", f"Relógios: {relogios_coletados}/{total_tempo}"]
     
     for i, texto in enumerate(textos_hud):
         superficie_texto = fonte_hud.render(texto, True, COR_AMARELA)
         fundo_texto = pygame.Surface((superficie_texto.get_width() + 10, superficie_texto.get_height()), pygame.SRCALPHA)
-        fundo_texto.fill(hud_bg_color)
+        fundo_texto.fill(hud_fundo_cor)
         tela.blit(fundo_texto, (5, 10 + i * 35))
         tela.blit(superficie_texto, (10, 10 + i * 35))
     
-    minutos, segundos = divmod(int(tempo_restante), 60)
+    minutos = tempo_restante // 60
+    segundos = tempo_restante % 60
     cronometro_texto = f"{minutos:02d}:{segundos:02d}"
     superficie_cronometro = fonte_hud.render(cronometro_texto, True, (255, 0, 0))
     
     pos_cronometro = superficie_cronometro.get_rect(topright=(largura_tela - 10, 10))
     
     fundo_cronometro = pygame.Surface((pos_cronometro.width + 10, pos_cronometro.height), pygame.SRCALPHA)
-    fundo_cronometro.fill(hud_bg_color)
+    fundo_cronometro.fill(hud_fundo_cor)
     tela.blit(fundo_cronometro, fundo_cronometro.get_rect(topright=(largura_tela - 5, 10)))
     tela.blit(superficie_cronometro, pos_cronometro)
     
-    if mensagem_chaves and pygame.time.get_ticks() - ticktempoai < duracao_mensagem:
+    if mensagem_chaves and pygame.time.get_ticks() - ultima_marcacao_temporal < duracao_mensagem:
         texto_msg = "Você tem as chaves! A porta da formatura te aguarda"
         fazendoo_txt(texto_msg, fonte_mensagem_central, COR_AMARELA, (largura_tela / 2, 40))
 
     if vitoria:
-        desenhar_tela_final("Parabens, você graduou :)", (255, 215, 0))
+        desenhar_tela_final("Parabéns, você graduou :)", (255, 215, 0))
+
     elif derrota:
-        desenhar_tela_final("Eita, demorou demais, você foi exonerado! :(", (170, 0, 0))
-
-def desenhar_tela_final(texto, cor):
-    fundo_final = pygame.Surface((largura_tela, altura_tela), pygame.SRCALPHA)
-    fundo_final.fill((0, 0, 0, 180))
-    tela.blit(fundo_final, (0, 0))
-    
-    fonte_final = pygame.font.SysFont('Consolas', 100, bold=True)
-    superficie_final = fonte_final.render(texto, True, cor)
-    pos_final = superficie_final.get_rect(center=(largura_tela / 2, altura_tela / 2))
-    tela.blit(superficie_final, pos_final)
-
+        desenhar_tela_final("Eita, demorou demais, você foi jubilado! :(", (170, 0, 0))
 
 def loop_jogo():
     if not vitoria and not derrota:
@@ -329,7 +312,6 @@ def loop_jogo():
         atualizar_status_partida()
     
     desenhar_cena_jogo()
-
 
 estado_jogo = 'menu'
 running = True
@@ -343,6 +325,7 @@ while running:
             if evento.key == pygame.K_ESCAPE:
                 if estado_jogo == 'jogando':
                     estado_jogo = 'menu'
+
                 else:
                     running = False
         
@@ -350,17 +333,21 @@ while running:
             hitbox_comecar, rect_sair, rect_facil, rect_medio, rect_dificil = desenhar_menu()
             
             if rect_facil.collidepoint(evento.pos): dificuldade_selecionada = 'facil'
+
             if rect_medio.collidepoint(evento.pos): dificuldade_selecionada = 'medio'
+            
             if rect_dificil.collidepoint(evento.pos): dificuldade_selecionada = 'dificil'
             
             if hitbox_comecar.collidepoint(evento.pos):
                 iniciar_novo_jogo(dificuldade_selecionada)
                 estado_jogo = 'jogando'
+            
             if rect_sair.collidepoint(evento.pos):
                 running = False
 
     if estado_jogo == 'menu':
         desenhar_menu()
+    
     elif estado_jogo == 'jogando':
         loop_jogo()
 
