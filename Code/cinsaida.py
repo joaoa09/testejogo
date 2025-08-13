@@ -198,9 +198,13 @@ def desenhar_cena_jogo():
 
     if vitoria:
         desenhar_tela_final("Parabéns, você graduou :)", (255, 215, 0))
+        mixer.music.load("Musica/musicatopzera.ogg")
+        mixer.music.play(-1)
 
     elif derrota:
         desenhar_tela_final("Eita, demorou demais, você foi jubilado! :(", (170, 0, 0))
+        mixer.music.load("Musica/musicatopzera.ogg")
+        mixer.music.play(-1)
 
 estado_jogo = 'menu'
 running = True
