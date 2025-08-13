@@ -2,6 +2,7 @@ import pygame
 import random
 import sys
 from item import Item
+from pygame import mixer
 
 pygame.init()
 pygame.font.init()
@@ -87,62 +88,6 @@ def pos_valida(pos_ok):
         pos_ok.remove(pos)
         return pos
 
-def iniciar_novo_jogo(dificuldade):
-    #Reseta variáveis
-    global personagem_rect, velocidade_personagem, tempo_restante, ultima_marcacao_temporal, vitoria, derrota, chaves_coletadas, botas_coletadas, relogios_coletados, chaves_encontradas, lista_de_itens, porta_saida, mensagem_chaves, tempo_msg
-
-    botas_coletadas=0
-    relogios_coletados=0
-    chaves_coletadas=0
-
-
-    chaves_encontradas=False
-    vitoria = False
-    derrota = False
-    
-    velocidade_personagem = 4
-    lista_de_itens = []
-    
-    if dificuldade == 'facil': 
-        tempo_restante = 480
-    elif dificuldade == 'medio': 
-        tempo_restante = 360
-    elif dificuldade == 'dificil':
-        tempo_restante = 240
-    
-    ultima_marcacao_temporal = pygame.time.get_ticks()
-    mensagem_chaves= False 
-    tempo_msg = 0
-    
-    pos_ok = []
-    passo, w_pers, h_pers = 24, personagem_img.get_width(), personagem_img.get_height()
-
-    for x in range(0, largura_mapa, passo):
-        for y in range(0, altura_mapa, passo):
-            pos_x_canto, pos_y_canto = x - w_pers // 2, y - h_pers // 2
-            if not paredes.overlap(colisao_personagem, (pos_x_canto, pos_y_canto)):
-                pos_ok.append((x, y))
-
-    personagem_rect = personagem_img.get_rect(center=pos_valida(pos_ok))
-    
-    itens_a_gerar = []
-    for _ in range(total_chaves):
-        itens_a_gerar.append(('chave', chave_img))
-    for _ in range(total_velocidade):
-        itens_a_gerar.append(('velocidade', velocidade_img))
-    for _ in range(total_tempo):
-        itens_a_gerar.append(('tempo', tempo_img))
-    
-    random.shuffle(itens_a_gerar)
-
-    for tipo, img in itens_a_gerar:
-        x, y = pos_valida(pos_ok)
-        lista_de_itens.append(Item(x, y, tipo, img))
-
-    x_porta, y_porta = pos_valida(pos_ok)
-    porta_saida = Item(x_porta, y_porta, 'porta', porta_img)
-
-
 def fazendoo_txt(texto, fonte, cor_texto, centro_pos):
 
 
@@ -183,54 +128,6 @@ def desenhar_menu():
     fazendoo_txt("Trancar curso", fonte_menu, cor_sair, rect_sair.center)
     
     return hitbox_comecar, rect_sair, rect_facil, rect_medio, rect_dificil
-
-
-def processar_movimento_jogador():
-    global personagem_rect
-    
-    pos_anterior = personagem_rect.copy()
-    teclas = pygame.key.get_pressed()
-
-    if teclas[pygame.K_LEFT] or teclas[pygame.K_a]: 
-        personagem_rect.x -= velocidade_personagem
-
-    if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]: 
-        personagem_rect.x += velocidade_personagem
-
-    if teclas[pygame.K_UP] or teclas[pygame.K_w]:
-        personagem_rect.y -= velocidade_personagem
-
-    if teclas[pygame.K_DOWN] or teclas[pygame.K_s]:
-        personagem_rect.y += velocidade_personagem
-    
-    if paredes.overlap(colisao_personagem, (personagem_rect.x, personagem_rect.y)):
-        personagem_rect = pos_anterior
-
-
-def processar_coleta_itens():
-    global chaves_coletadas, chaves_encontradas, mensagem_chaves, tempo_msg, botas_coletadas, velocidade_personagem, relogios_coletados, tempo_restante
-    
-    itens_para_remover = []
-    for item in lista_de_itens:
-        if personagem_rect.colliderect(item.rect):
-            if item.tipo == 'chave':
-                chaves_coletadas += 1
-                if chaves_coletadas == total_chaves:
-                    chaves_encontradas = True
-                    mensagem_chaves = True
-                    tempo_msg = pygame.time.get_ticks()
-            elif item.tipo == 'velocidade':
-                velocidade_personagem *= 1.2
-                botas_coletadas += 1
-            elif item.tipo == 'tempo':
-                tempo_restante += 30
-                relogios_coletados += 1
-            
-            itens_para_remover.append(item)
-    
-    for item in itens_para_remover:
-        lista_de_itens.remove(item)
-
 
 def atualizar_status_partida():
     global vitoria, derrota, tempo_restante, ultima_marcacao_temporal
@@ -305,16 +202,11 @@ def desenhar_cena_jogo():
     elif derrota:
         desenhar_tela_final("Eita, demorou demais, você foi jubilado! :(", (170, 0, 0))
 
-def loop_jogo():
-    if not vitoria and not derrota:
-        processar_movimento_jogador()
-        processar_coleta_itens()
-        atualizar_status_partida()
-    
-    desenhar_cena_jogo()
-
 estado_jogo = 'menu'
 running = True
+
+mixer.music.load("Musica/musicatopzera.ogg")
+mixer.music.play(-1)
 
 while running:
     for evento in pygame.event.get():
@@ -332,14 +224,67 @@ while running:
         if estado_jogo == 'menu' and evento.type == pygame.MOUSEBUTTONDOWN:
             hitbox_comecar, rect_sair, rect_facil, rect_medio, rect_dificil = desenhar_menu()
             
-            if rect_facil.collidepoint(evento.pos): dificuldade_selecionada = 'facil'
+            if rect_facil.collidepoint(evento.pos): 
+                dificuldade_selecionada = 'facil'
 
-            if rect_medio.collidepoint(evento.pos): dificuldade_selecionada = 'medio'
+            if rect_medio.collidepoint(evento.pos): 
+                dificuldade_selecionada = 'medio'
             
-            if rect_dificil.collidepoint(evento.pos): dificuldade_selecionada = 'dificil'
+            if rect_dificil.collidepoint(evento.pos):
+                dificuldade_selecionada = 'dificil'
             
             if hitbox_comecar.collidepoint(evento.pos):
-                iniciar_novo_jogo(dificuldade_selecionada)
+                
+                botas_coletadas=0
+                relogios_coletados=0
+                chaves_coletadas=0
+
+
+                chaves_encontradas=False
+                vitoria = False
+                derrota = False
+                
+                velocidade_personagem = 4
+                lista_de_itens = []
+                
+                if dificuldade_selecionada == 'facil': 
+                    tempo_restante = 480
+                elif dificuldade_selecionada == 'medio': 
+                    tempo_restante = 360
+                elif dificuldade_selecionada == 'dificil':
+                    tempo_restante = 240
+                
+                ultima_marcacao_temporal = pygame.time.get_ticks()
+                mensagem_chaves= False 
+                tempo_msg = 0
+                
+                pos_ok = []
+                passo, w_pers, h_pers = 24, personagem_img.get_width(), personagem_img.get_height()
+
+                for x in range(0, largura_mapa, passo):
+                    for y in range(0, altura_mapa, passo):
+                        pos_x_canto, pos_y_canto = x - w_pers // 2, y - h_pers // 2
+                        if not paredes.overlap(colisao_personagem, (pos_x_canto, pos_y_canto)):
+                            pos_ok.append((x, y))
+
+                personagem_rect = personagem_img.get_rect(center=pos_valida(pos_ok))
+                
+                itens_a_gerar = []
+                for _ in range(total_chaves):
+                    itens_a_gerar.append(('chave', chave_img))
+                for _ in range(total_velocidade):
+                    itens_a_gerar.append(('velocidade', velocidade_img))
+                for _ in range(total_tempo):
+                    itens_a_gerar.append(('tempo', tempo_img))
+                
+                random.shuffle(itens_a_gerar)
+
+                for tipo, img in itens_a_gerar:
+                    x, y = pos_valida(pos_ok)
+                    lista_de_itens.append(Item(x, y, tipo, img))
+
+                x_porta, y_porta = pos_valida(pos_ok)
+                porta_saida = Item(x_porta, y_porta, 'porta', porta_img)
                 estado_jogo = 'jogando'
             
             if rect_sair.collidepoint(evento.pos):
@@ -349,7 +294,50 @@ while running:
         desenhar_menu()
     
     elif estado_jogo == 'jogando':
-        loop_jogo()
+        if not vitoria and not derrota:
+
+            pos_anterior = personagem_rect.copy()
+            teclas = pygame.key.get_pressed()
+
+            if teclas[pygame.K_LEFT] or teclas[pygame.K_a]: 
+                personagem_rect.x -= velocidade_personagem
+
+            if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]: 
+                personagem_rect.x += velocidade_personagem
+
+            if teclas[pygame.K_UP] or teclas[pygame.K_w]:
+                personagem_rect.y -= velocidade_personagem
+
+            if teclas[pygame.K_DOWN] or teclas[pygame.K_s]:
+                personagem_rect.y += velocidade_personagem
+            
+            if paredes.overlap(colisao_personagem, (personagem_rect.x, personagem_rect.y)):
+                personagem_rect = pos_anterior
+
+            itens_para_remover = []
+            for item in lista_de_itens:
+                if personagem_rect.colliderect(item.rect):
+                    if item.tipo == 'chave':
+                        chaves_coletadas += 1
+                        if chaves_coletadas == total_chaves:
+                            chaves_encontradas = True
+                            mensagem_chaves = True
+                            tempo_msg = pygame.time.get_ticks()
+                    elif item.tipo == 'velocidade':
+                        velocidade_personagem *= 1.2
+                        botas_coletadas += 1
+                    elif item.tipo == 'tempo':
+                        tempo_restante += 30
+                        relogios_coletados += 1
+                    
+                    itens_para_remover.append(item)
+                    
+                    for item in itens_para_remover:
+                        lista_de_itens.remove(item)
+
+        atualizar_status_partida()
+        
+        desenhar_cena_jogo()
 
     pygame.display.flip()
     relogio.tick(60)
